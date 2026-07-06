@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useStore } from '@/hooks/useStore';
 import { MenuItem, Text } from '@deriv-com/ui';
@@ -9,14 +10,18 @@ export const MenuItems = observer(() => {
     const store = useStore();
     const is_logged_in = store?.client?.is_logged_in ?? false;
 
+    const handleFreeBots = useCallback(() => {
+        window.location.hash = '#free_bots';
+    }, []);
+
     return (
         <>
             {is_logged_in && (
                 <MenuItem
-                    as='a'
+                    as='button'
                     className='app-header__menu'
-                    href='/#free_bots'
-                    leftComponent={LabelPairedCircleInfoCaptionRegularIcon}
+                    onClick={handleFreeBots}
+                    leftComponent={<LabelPairedCircleInfoCaptionRegularIcon height='24px' width='24px' />}
                 >
                     <Text>{localize('Free Bots')}</Text>
                 </MenuItem>

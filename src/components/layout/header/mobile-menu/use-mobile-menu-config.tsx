@@ -35,10 +35,10 @@ const useMobileMenuConfig = (
         return [
             [
                 client?.is_logged_in && {
-                    as: 'a',
+                    as: 'button',
                     label: localize('Free Bots'),
                     LeftComponent: LabelPairedCircleInfoCaptionRegularIcon,
-                    href: '/#free_bots',
+                    onClick: () => { window.location.hash = '#free_bots'; },
                 },
 
                 // Conditionally include theme toggle based on brand config
