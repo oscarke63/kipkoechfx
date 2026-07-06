@@ -16,7 +16,7 @@ const LS_KEY = 'derivbot_analytics';
 const ASSETS = ['R_25', 'R_100'];
 const ASSET_NAMES: Record<string, string> = { R_25: 'V25', R_100: 'V100' };
 const UI_THROTTLE = 300;
-const APP_ID = process.env.NEXT_PUBLIC_DERIV_APP_ID || '1089';
+const APP_ID = '1089';
 
 interface IEvt {
     tickLat?: number | null;
