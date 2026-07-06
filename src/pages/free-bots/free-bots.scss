@@ -17,7 +17,7 @@
     --fb-sans: 'Syne', 'Inter', sans-serif;
 
     width: 100%;
-    min-height: calc(100vh - 12rem);
+    height: 100%;
     overflow-y: auto;
     font-family: var(--fb-sans);
     color: var(--fb-text);
@@ -540,13 +540,17 @@
             box-shadow: 0 4px 20px rgba(255, 61, 90, 0.2);
             display: none;
         }
-        &--clear {
+        &--clear, &--reconnect {
             background: transparent;
             color: var(--fb-dim);
             border: 1px solid var(--fb-border);
             font-size: 12px;
             padding: 9px 18px;
         }
+        &--reconnect {
+            color: var(--fb-blue);
+            border-color: rgba(61, 156, 255, 0.3);
+            &:hover { border-color: var(--fb-blue); }
     }
 
     #status-msg {

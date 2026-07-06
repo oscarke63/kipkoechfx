@@ -1,7 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { observer } from 'mobx-react-lite';
-import { useStore } from '@/hooks/useStore';
-import { localize } from '@deriv-com/translations';
 
 type TBotState = 'idle' | 'scanning' | 'trading';
 type TSignalType = 'CALL' | 'PUT';
@@ -107,9 +104,7 @@ function makeRefs(): IBotRefs {
     };
 }
 
-const FreeBots = observer(() => {
-    const store = useStore();
-    const client = store?.client;
+const FreeBots = () => {
     const wsRef = useRef<WebSocket | null>(null);
     const pingRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const watchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -147,13 +142,13 @@ const FreeBots = observer(() => {
 
     // ── Helpers that mutate refs ──
     const getToken = useCallback(() => {
-        if (client?.is_logged_in) {
-            const list = JSON.parse(localStorage.getItem('accountsList') || '{}');
-            const loginid = localStorage.getItem('active_loginid');
-            if (loginid && list[loginid]) return list[loginid];
-        }
+        const list = JSON.parse(localStorage.getItem('accountsList') || '{}');
+        const loginid = localStorage.getItem('active_loginid');
+        if (loginid && list[loginid]) return list[loginid];
+        const token = localStorage.getItem('authToken');
+        if (token) return token;
         return null;
-    }, [client]);
+    }, []);
 
     const wsSend = useCallback((obj: any) => {
         if (wsRef.current?.readyState === WebSocket.OPEN) wsRef.current.send(JSON.stringify(obj));
@@ -519,10 +514,13 @@ const FreeBots = observer(() => {
         setRotateLog(prev => [{ time, msg: `🔄 MAX STEPS (L${level}) on ${from} → ${to} carrying $${stake.toFixed(2)}` }, ...prev].slice(0, 100));
     }
 
-    // ── WS connection (mount/unmount) ──
-    useEffect(() => {
+    // ── WS connection (connect on mount, reconnect on token change) ──
+    const connect = useCallback(() => {
         const token = getToken();
-        if (!token) return;
+        if (!token) {
+            showStatus('No authentication token found. Log in to use the bot.', 'error');
+            return;
+        }
         if (wsRef.current) try { wsRef.current.close(); } catch (_) { }
         showStatus('Connecting with app authentication…', 'info');
         const ws = new WebSocket('wss://ws.binaryws.com/websockets/v3?app_id=1089');
@@ -535,12 +533,14 @@ const FreeBots = observer(() => {
             clearWatchdog(); stopRetryKa(); resetEntry(); resetRetry();
         };
         ws.onmessage = handleMessage;
-        return () => {
-            try { ws.close(); } catch (_) { }
-            if (pingRef.current) { clearInterval(pingRef.current); pingRef.current = null; }
-            clearWatchdog(); stopRetryKa();
-        };
     }, [getToken, handleMessage, showStatus, wsSend, clearWatchdog, stopRetryKa, resetEntry, resetRetry]);
+
+    useEffect(() => { connect(); }, [connect]);
+
+    const reconnect = useCallback(() => {
+        if (wsRef.current) try { wsRef.current.close(); } catch (_) { }
+        connect();
+    }, [connect]);
 
     // ── Public bot controls (use refs) ──
     const startBot = useCallback(() => {
@@ -571,7 +571,6 @@ const FreeBots = observer(() => {
 
     // ── Derive view state from refs on each render tick ──
     const s = b.current;
-    const isLoggedIn = client?.is_logged_in;
     const tickLatMs = s.lastTickMs ? Date.now() - (s.lastTickMs - performance.now() + s.lastTickMs) : 0;
     const wr = s.totalTrades > 0 ? Math.round(s.wins / s.totalTrades * 100) : 0;
     const pnlStr = (s.sessionPnl >= 0 ? '+' : '') + '$' + Math.abs(s.sessionPnl).toFixed(2);
@@ -601,18 +600,6 @@ const FreeBots = observer(() => {
     }
 
     // ── Render ──
-    if (!isLoggedIn) {
-        return (
-            <div className='free-bots-unauth'>
-                <div className='free-bots-unauth__content'>
-                    <div className='free-bots-unauth__icon'>⚡</div>
-                    <h2>{localize('Free Trading Bots')}</h2>
-                    <p>{localize('Log in to access free automated trading bots. Use your Deriv account to get started.')}</p>
-                </div>
-            </div>
-        );
-    }
-
     return (
         <div className='free-bots'>
             <div className='free-bots__container'>
@@ -816,6 +803,9 @@ const FreeBots = observer(() => {
                         <button className='free-bots__btn free-bots__btn--clear' onClick={() => { setTradeLog([]); setRotateLog([]); }}>
                             Clear Log
                         </button>
+                        <button className='free-bots__btn free-bots__btn--reconnect' onClick={reconnect}>
+                            ⟳ Reconnect
+                        </button>
                     </div>
                     {statusMsg && <div id='status-msg' className={statusMsg.type}>&gt; {statusMsg.text}</div>}
                 </div>
@@ -855,6 +845,6 @@ const FreeBots = observer(() => {
             </div>
         </div>
     );
-});
+};
 
 export default FreeBots;
