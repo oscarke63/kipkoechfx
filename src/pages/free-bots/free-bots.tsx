@@ -146,9 +146,15 @@ const FreeBots = () => {
     const getToken = useCallback(() => {
         const list = JSON.parse(localStorage.getItem('accountsList') || '{}');
         const loginid = localStorage.getItem('active_loginid');
-        if (loginid && list[loginid]) return list[loginid];
-        const token = localStorage.getItem('authToken');
-        if (token) return token;
+        if (loginid && list[loginid]) {
+            const t = list[loginid];
+            if (typeof t === 'string') return t;
+            if (t?.token) return t.token;
+        }
+        const t = localStorage.getItem('authToken');
+        if (t) return t;
+        const ai = JSON.parse(localStorage.getItem('auth_info') || '{}');
+        if (ai?.access_token) return ai.access_token;
         return null;
     }, []);
 
